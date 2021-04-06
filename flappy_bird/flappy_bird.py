@@ -38,7 +38,7 @@ class Color:
 input_nodes, hidden_nodes, output_nodes = 3, 10, 1
 sizes=[input_nodes, hidden_nodes, output_nodes]
 
-def load_image(name, colorkey=None):
+def load_image(name, scale, colorkey=None, rotate=None):
     fullname = os.path.join(os.path.dirname(__file__) + '/images', name)
     try:
         image = pygame.image.load(fullname)
@@ -50,7 +50,9 @@ def load_image(name, colorkey=None):
         if colorkey == -1:
             colorkey = image.get_at((0, 0))
         image.set_colorkey(colorkey)
-    image = pygame.transform.scale(image,(40,40))
+    image = pygame.transform.scale(image, scale)
+    if rotate is not None:
+        image = pygame.transform.rotate(image, rotate)
     return image, image.get_rect()
 
 class Bird(pygame.sprite.Sprite):
@@ -62,7 +64,7 @@ class Bird(pygame.sprite.Sprite):
         self.x_loc = x_loc
         self.y_loc = y_loc
 
-        self.image, self.rect = load_image("bird.png", Color.WHITE)
+        self.image, self.rect = load_image("bird.png", (40, 40), Color.WHITE)
         self.rect.center = (x_loc, y_loc)
         if brain is None:
             self.brain = nn(sizes)
@@ -111,10 +113,11 @@ class Pipe_Upper(pygame.sprite.Sprite):
 
         self.pipe_speed = speed
         self.pipe_height = height
-        self.image = pygame.Surface((pipe_width, height))
-        self.image.fill(Color.GREEN)
-        self.image.set_colorkey(Color.WHITE)
-        self.rect = self.image.get_rect()
+        #self.image = pygame.Surface((pipe_width, height))
+        #self.image.fill(Color.GREEN)
+        #self.image.set_colorkey(Color.WHITE)
+        #self.rect = self.image.get_rect()
+        self.image, self.rect = load_image("pipe.png", (int(pipe_width), int(height)), Color.WHITE, float(180))
         self.rect.x = (x)
         self.rect.y = (0)
         self.mask = pygame.mask.from_surface(self.image)
@@ -134,10 +137,11 @@ class Pipe_Lower(pygame.sprite.Sprite):
         #pygame.sprite.Sprite.__init__(self)
 
         self.pipe_speed = speed
-        self.image = pygame.Surface((pipe_width, screen_height - (pipe_vertical_gap + height)))
-        self.image.fill(Color.GREEN)
-        self.image.set_colorkey(Color.WHITE)
-        self.rect = self.image.get_rect()
+        self.image, self.rect = load_image("pipe.png", (int(pipe_width), int(screen_height - (pipe_vertical_gap + height))), Color.WHITE)
+        #self.image = pygame.Surface((pipe_width, screen_height - (pipe_vertical_gap + height)))
+        #self.image.fill(Color.GREEN)
+        #self.image.set_colorkey(Color.WHITE)
+        #self.rect = self.image.get_rect()
         self.rect.x = (x)
         self.rect.y = (pipe_vertical_gap + height)
         self.mask = pygame.mask.from_surface(self.image)
@@ -199,7 +203,17 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
 
     while True:
         clock.tick(FPS)
-        screen.fill(Color.GRAY)
+        screen.fill(Color.WHITE)
+
+        screen_size = screen.get_size()
+        background, _ = load_image("background.png", (screen_width, screen_height))
+        screen.blit(background, (0, 0))
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
         for bird_index in range(bird_population):
             bird = bird_list[bird_index]
             if bird.isDead() == False:
@@ -285,6 +299,7 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
         gen = myfont.render("Genertation {0}".format(generation), 1, (0,0,0))
         highest = myfont.render("Highest Score {0}".format(int(round(score))), 1, (0,0,0))
         current = myfont.render("Current Score {0}".format(run_score), 1, (0,0,0))
+
         screen.blit(gen, (5, 10))
         screen.blit(highest, (5, 35))
         screen.blit(current, (5, 60))
