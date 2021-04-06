@@ -158,8 +158,9 @@ def init_birds(bird_sprites, brain):
         bird_40_percent = [brain]*int(bird_population*0.4)
         bird_60_percent = [brain]
         for i in range(int((bird_population*0.6) - 1)):
-            brain.mutate()
-            bird_60_percent.append(brain)
+            b = brain.copy()
+            b.mutate()
+            bird_60_percent.append(b)
         bird_brain_list = bird_40_percent + bird_60_percent
 
     bird_list=[]
