@@ -13,17 +13,28 @@ import numpy as np
 from nn import neural_network as nn
 
 screen_width, screen_height = 1400, 800
-FPS = 120
+FPS = 60
 
 pipe_width = 100
 pipe_horizontal_gap = 300
 pipe_vertical_gap = 200
-pipe_speed = 6
 pipe_count = (screen_width//(pipe_horizontal_gap + pipe_width)) + 2
 
+###############################################################
+# Parameter's that you can tweek, which change the resulting  #
+# model learning rate                                         #
+###############################################################
 bird_population = 100
 bird_speed = 10
+pipe_speed = 6
+do_not_mutate_percentage = 0.4
+mutate_percentage = 0.6
+hidden_nodes = 20
 
+
+#############################################################
+# Color class                                               #
+#############################################################
 class Color:
     RED = (255, 0, 0)
     GREEN = (0, 100, 0)
@@ -35,7 +46,7 @@ class Color:
     CYAN = (0, 255, 255)
     MAGENTA = (255, 0, 255)
 
-input_nodes, hidden_nodes, output_nodes = 3, 10, 1
+input_nodes, output_nodes = 3, 1
 sizes=[input_nodes, hidden_nodes, output_nodes]
 
 def load_image(name, scale, colorkey=None, rotate=None):
@@ -171,9 +182,9 @@ def init_birds(bird_sprites, brain):
     bird_brain_list=[None]*bird_population
     if brain is not None:
         # logic to mutate brid
-        bird_40_percent = [brain]*int(bird_population*0.4)
+        bird_40_percent = [brain]*int(bird_population*do_not_mutate_percentage)
         bird_60_percent = [brain]
-        for i in range(int((bird_population*0.6) - 1)):
+        for i in range(int((bird_population*mutate_percentage) - 1)):
             b = brain.copy()
             b.mutate()
             bird_60_percent.append(b)
