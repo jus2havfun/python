@@ -347,6 +347,8 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
                         print(best_score)
                         print(best_bird_index)
                         sys.exit(0)
+                birds_alive = myfont.render("Birds Alive {0}".format(len(bird_list)-bird_count), 1, (0,0,0))
+                update_screen_scores(screen, score, run_score, birds_alive)
                 return best_index,score
 
         bird_sprites.update()
@@ -374,16 +376,20 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
         if nearest_pipe[0].get_X() + pipe_width <= (screen_width//8):
             nearest_pipe = pipe_list[1]
 
-        gen = myfont.render("Genertation {0}".format(generation), 1, (0,0,0))
-        highest = myfont.render("Highest Score {0}".format(int(round(score))), 1, (0,0,0))
-        current = myfont.render("Current Score {0}".format(run_score), 1, (0,0,0))
-
-        screen.blit(gen, (5, 10))
-        screen.blit(highest, (5, 35))
-        screen.blit(current, (5, 60))
+        birds_alive = myfont.render("Birds Alive {0}".format(len(bird_list)-bird_count), 1, (0,0,0))
+        update_screen_scores(screen, score, run_score, birds_alive)
         run_score += 1
-        pygame.display.flip()
 
+def update_screen_scores(screen, score, run_score, birds_alive):
+    myfont = pygame.font.SysFont("monospace", 16)
+    gen = myfont.render("Genertation {0}".format(generation), 1, (0,0,0))
+    highest = myfont.render("Highest Score {0}".format(int(round(score))), 1, (0,0,0))
+    current = myfont.render("Current Score {0}".format(run_score), 1, (0,0,0))
+    screen.blit(gen, (5, 10))
+    screen.blit(highest, (5, 35))
+    screen.blit(current, (5, 60))
+    screen.blit(birds_alive, (5, 85))
+    pygame.display.flip()
 
 def purge_all():
     print ("PURGE ALL")
@@ -397,6 +403,7 @@ if __name__ == "__main__":
     threshold_score = 0
     threshold_count = 0
     generation = 1
+    np.warnings.filterwarnings('error', category=np.VisibleDeprecationWarning)
     while True:
         pygame.init()
         clock = pygame.time.Clock()
