@@ -13,7 +13,7 @@ import numpy as np
 from nn import neural_network as nn
 
 screen_width, screen_height = 1400, 800
-FPS = 60
+FPS = 120
 
 pipe_width = 100
 pipe_horizontal_gap = 300
@@ -55,6 +55,12 @@ def load_image(name, scale, colorkey=None, rotate=None):
         image = pygame.transform.rotate(image, rotate)
     return image, image.get_rect()
 
+####################################################
+# Bird Class                                       #
+# Holds: x location, y location, velocity,         #
+# brain (instance of neural_network),              #
+# dead (flag to check if bird is alive             #
+#################################################### 
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x_loc, y_loc, velocity, brain=None):
         super(Bird, self).__init__()
@@ -106,6 +112,9 @@ class Bird(pygame.sprite.Sprite):
     def isDead(self):
         return self.bird_dead
 
+#######################################################
+# Upper pipe class                                    # 
+#######################################################
 class Pipe_Upper(pygame.sprite.Sprite):
     def __init__(self, x, height, speed):
         super(Pipe_Upper, self).__init__()
@@ -131,6 +140,9 @@ class Pipe_Upper(pygame.sprite.Sprite):
     def get_Y(self):
         return (self.rect.y + self.pipe_height)
 
+#######################################################
+# Lower pipe class                                    #
+#######################################################
 class Pipe_Lower(pygame.sprite.Sprite):
     def __init__(self, x, height, speed):
         super(Pipe_Lower, self).__init__()
@@ -196,6 +208,10 @@ def make_pipe(pipe):
     return [pipe_upper, pipe_lower]
 
 
+######################################################
+# Loop that finds the best bird, from the population #
+# and return's to repopulate the next generation     #
+######################################################
 def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pipe_sprites):
     myfont = pygame.font.SysFont("monospace", 16)
     run_score, bird_count, best_index = 0, 0, -1
@@ -214,37 +230,69 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
                 pygame.quit()
                 sys.exit()
 
+        # Iterate over all the birds.
         for bird_index in range(bird_population):
             bird = bird_list[bird_index]
             if bird.isDead() == False:
                 input = []
+
+               # Get Birds x and y locations.
                 bird_x, bird_y = bird.rect.center
+
+               # Get pipe x location.
                 pipe_x = nearest_pipe[0].get_X()
                 draw_x,draw_y = 0,0
 
                 ypip = (nearest_pipe[0].get_Y()+(pipe_vertical_gap//2))/(screen_height)
                 draw_y = nearest_pipe[0].get_Y()+(pipe_vertical_gap//2)
+
+                ####################################################
+                # This condition checks if bird is before pipe     #
+                ####################################################
                 if bird_x <= pipe_x:
                     xpip = (nearest_pipe[0].get_X())/(screen_width)
                     draw_x = nearest_pipe[0].get_X()
+                ####################################################
+                # This condition checks if bird is inside pipe     #
+                ####################################################
                 elif bird_x <= (pipe_x + (pipe_width//2)):
                     xpip = (nearest_pipe[0].get_X()+(pipe_width//2))/(screen_width)
                     draw_x = nearest_pipe[0].get_X() + (pipe_width//2)
+                ####################################################
+                # This condition checks if bird is past the pipe   #
+                ####################################################
                 else:
                     xpip = (nearest_pipe[0].get_X()+pipe_width)/(screen_width)
                     draw_x = nearest_pipe[0].get_X() + pipe_width
 
                 pygame.draw.circle(screen,Color.RED,(draw_x,int(draw_y)),5)
                 pygame.draw.line(screen, Color.YELLOW, (bird_x, bird_y), (draw_x,draw_y))
+
+                ###################################################
+                # The input to neural network is :                #
+                # bird speed,                                     #
+                # delta_x : difference between pipe_x and bird_x, #
+                # delta_y : difference between pipe_y and bird_y. #
+                ###################################################
                 input.append(bird.vel())
                 input.append((bird_x/screen_width)-xpip)
                 input.append((bird_y/screen_height)-ypip)
                 direct_distance = np.sqrt(((input[1]**2) + (input[2]**2)))
                 fitness = run_score - direct_distance
                 output = bird.evaluate(input)
+
+                #####################################################
+                # If the model outputs value greater then 0.5, then #
+                # our bird jumps.                                   #
+                #####################################################
                 if output[0] > 0.5:
                     bird.jump()
 
+                #####################################################
+                # Here we check if bird collides with screen        #
+                # boundary, if it does, we remove the bird and make #
+                # a note of it's fitness score                      #
+                #####################################################
                 if bird.boundary_collition():
                     #print ('Collision: bird_index:{}, x:{}, y:{}, bottom:{}, top:{}'.format(bird_index, bird_x, bird_y, bird.rect.bottom, bird.rect.top))
                     pygame.sprite.Sprite.kill(bird)
@@ -253,6 +301,11 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
                     bird.set_dead()
                     bird_count += 1
 
+                #####################################################
+                # Here we check if bird collides with pipe          #
+                # boundary, if it does, we remove the bird and make #
+                # a note of it's fitness score                      #
+                #####################################################
                 for pipe in nearest_pipe:
                     c = 0
                     if pygame.sprite.collide_rect(bird,pipe) and (bird.isDead() == False):
@@ -268,6 +321,11 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
                     if c == 1:
                         break
 
+            #####################################################
+            # When all birds have died, we pick the bird with   #
+            # maximum fitness, and use it to mutate and spawn   #
+            # next generation of birds                          # 
+            #####################################################
             if bird_count == len(bird_list):
                 if max(best_score) > score:
                     score = max(best_score)
@@ -285,6 +343,10 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
         bird_sprites.draw(screen)
         pipe_sprites.draw(screen)
 
+        ######################################################
+        # If the pipe goes off screen, we remove it, and add #
+        # new pipe to the pipe_list                          #
+        ######################################################
         if pipe_list[0][0].get_X() + pipe_width <= 0:
             pygame.sprite.Sprite.kill(pipe_list[0][0])
             pygame.sprite.Sprite.kill(pipe_list[0][1])
@@ -293,6 +355,11 @@ def loop(generation, score, bird_list, pipe_list, nearest_pipe, bird_sprites, pi
             pipe_sprites.add(pipe_list[-1][0])
             pipe_sprites.add(pipe_list[-1][1])
 
+        ###################################################
+        # we need to update the next nearest pipe. The way#
+        # we do this, when bird passes the pipe+width     #
+        # screen_width//8 : Bird X location               #
+        ###################################################
         if nearest_pipe[0].get_X() + pipe_width <= (screen_width//8):
             nearest_pipe = pipe_list[1]
 
@@ -326,8 +393,17 @@ if __name__ == "__main__":
         pygame.display.set_caption('Flappy Bird')
 
         bird_sprites, pipe_sprites = pygame.sprite.Group(), pygame.sprite.Group()
+
+        #####################################################
+        # Create bird population                            #
+        #####################################################
         bird_list = init_birds(bird_sprites, brain)
+
+        #####################################################
+        # Draw pipes                                        #
+        #####################################################
         pipe_list = init_pipes(pipe_sprites)
+
         nearest_pipe = pipe_list[0]
         if brain is not None:
             old_brain = brain
