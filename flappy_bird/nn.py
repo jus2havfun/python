@@ -62,8 +62,8 @@ class neural_network:
 
     def copy(self):
         nn = neural_network(self.sizes)
-        nn.weights = np.copy(self.weights)
-        nn.biases = np.copy(self.biases)
+        nn.weights = [np.copy(w) for w in self.weights]
+        nn.biases = [np.copy(b) for b in self.biases]
         return nn
 
     def update_batch(self, batch, learnrate):
