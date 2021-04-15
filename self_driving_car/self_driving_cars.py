@@ -3,6 +3,7 @@ from pygame.sprite import Group, Sprite
 import numpy as np
 from pygame.locals import *
 from nn import neural_network as nn
+import argparse
 
 screen_width, screen_height = 0, 0
 map, maprect = None, None
@@ -15,8 +16,19 @@ angle = 0
 no_of_players = 4
 do_not_mutate_percentage = 0.4
 mutate_percentage = 0.6
-car_start_pos = (179, 330)
+#car_start_pos = (179, 330) # For map1.png & map2.png
+#car_start_pos = (169, 330)  # For map3.png
+car_start_pos = (79, 330)   # For map4.png
 clock = None
+sizes = [5, 10, 2]
+map_file = "map4.png"
+save_model_file = False
+draw_vector_line = True
+
+def load_args():
+    parser = argparse.ArgumentParser(description='Simple Neural Network with Backpropogation.')
+    parser.add_argument("--load_model_file", default="")
+    return parser.parse_args()
 
 class Color:
     RED = (255, 0, 0)
@@ -41,7 +53,6 @@ class Player(Sprite):
         self.rect = image.get_rect(**{anchor: position})
         self.center = pygame.Vector2(self.rect.center)
 
-        sizes = [5, 10, 2]
         if brain is None:
             self.brain = nn(sizes)
         else:
@@ -127,7 +138,10 @@ class Player(Sprite):
                 len += 4
                 b = self.center + self.radar[i] * len
             self.input.append([b, len])
-        
+
+    def save(self):
+        self.brain.save_model()
+
     #############################################
     # Compute car corners as it manovers through#
     # the race track.                           #
@@ -166,12 +180,12 @@ def load_image(name, scale, colorkey=None, rotate=None):
 
 
 def load_map():
-    return load_image("map1.png", (screen_width, screen_height))
+    return load_image(map_file, (screen_width, screen_height))
 
 def loop(generation, score, screen, players_list, players_sprites, map, maprect):
     player_count, run_score, best_index  = 0, 0, -1
     best_score, best_player_index = [], []
-    print (screen_width, screen_height)
+    global save_model_file, draw_vector_line
     myfont = pygame.font.SysFont("monospace", 16)
     while True:
         clock.tick(FPS)
@@ -181,6 +195,13 @@ def loop(generation, score, screen, players_list, players_sprites, map, maprect)
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    draw_vector_line = not draw_vector_line
+
+            if run_score > 2000 and save_model_file == False:
+                save_model_file = True
+                player.save()
 
         for player_index in range(no_of_players):
             player = players_list[player_index]
@@ -198,7 +219,7 @@ def loop(generation, score, screen, players_list, players_sprites, map, maprect)
                     player.dead = True
                     player_count += 1
 
-                if player.is_alive() :
+                if player.is_alive() and draw_vector_line == True:
                     a = player.center
                     for input in player.input:
                         b = input[0]
@@ -207,7 +228,6 @@ def loop(generation, score, screen, players_list, players_sprites, map, maprect)
                         screen.blit(point2, (int(b.x), int(b.y)))
 
         if player_count == len(players_list):
-            print('All players died')
             if max(best_score) > score:
                 score = max(best_score)
                 try:
@@ -260,10 +280,16 @@ def init_players(players_sprites, screen, map, brain = None):
 
 if __name__ == "__main__":
     generation = 1
+    args = load_args()
     score = 0
     threshold_score = 0
     threshold_count = 0
     brain, old_brain = None, None
+
+    if len(args.load_model_file) > 0:
+        brain = nn(sizes)
+        brain.load(args.load_model_file)
+
     while True:
         pygame.init()
         clock = pygame.time.Clock()
@@ -279,8 +305,8 @@ if __name__ == "__main__":
             old_brain = brain
 
         index, score = loop(generation, score, screen, players_list, players_sprites, map, maprect)
-        if index == -1:
-            pygame.quit()
+        #if index == -1:
+        #    pygame.quit()
 
         generation += 1
 
@@ -291,12 +317,11 @@ if __name__ == "__main__":
             threshold_count += 1
 
         if threshold_count >= 5:
-            print ('PURGE ALL')
+            #print ('PURGE ALL')
             threshold_count = 0
             brain = None
             old_brain = None
         else:
-            print('It time to mutate best car')
             if index == -1:
                 brain = old_brain
             else:    

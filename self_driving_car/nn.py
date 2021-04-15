@@ -211,6 +211,10 @@ Output Layer     (10, 32)        (10, 1)
             print ('File not found or invalid model file: {}'.format(filename))
             pass
 
+
+    def save_model(self):
+        self.save('nn_'+ ''.join([str(i) for i in self.sizes]) +'.dat')
+
     def save(self, filename):
         biass, weighs=[],[]
         with open(filename, 'wb') as f:
