@@ -407,6 +407,8 @@ if __name__ == "__main__":
     while True:
         pygame.init()
         clock = pygame.time.Clock()
+        infoObject = pygame.display.Info()
+        screen_width, screen_height = infoObject.current_w, infoObject.current_h;
         screen = pygame.display.set_mode((screen_width, screen_height))
         pygame.display.set_caption('Flappy Bird')
 
